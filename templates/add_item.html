@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Add Item</h1>
+      <p>Add a new product to your inventory.</p>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <form method="POST" class="item-form">
+      <label for="name">Item Name</label>
+      <input type="text" id="name" name="name" value="{{ form.get('name', '') }}" required>
+
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        <option value="" {{ 'selected' if not form.get('category') }}>— None —</option>
+        {% for cat in categories %}
+          <option value="{{ cat.name }}" {{ 'selected' if form.get('category') == cat.name }}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="quantity">Quantity</label>
+      <input type="number" id="quantity" name="quantity" min="0" value="{{ form.get('quantity', 0) }}">
+
+      <label for="unit">Unit</label>
+      <select id="unit" name="unit">
+        {% for u in units %}
+          <option value="{{ u }}" {{ 'selected' if form.get('unit', 'pcs') == u }}>{{ u }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="price">Price per unit</label>
+      <input type="number" id="price" name="price" min="0" step="0.01" value="{{ form.get('price', 0) }}">
+
+      <label for="low_stock_threshold">Low Stock Threshold</label>
+      <input type="number" id="low_stock_threshold" name="low_stock_threshold" min="0" value="{{ form.get('low_stock_threshold', 5) }}">
+
+      <div class="form-actions">
+        <button type="submit" class="button">Save Item</button>
+        <a href="{{ url_for('products') }}" class="button button-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

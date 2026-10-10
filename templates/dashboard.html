@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Welcome, {{ current_user.username if current_user else "Guest" }}!</h1>
+      <p>Here's what's happening with your inventory today.</p>
+    </div>
+    <div class="page-date">
+      <i class="bi bi-calendar3"></i>
+      <div>
+        <div>{{ today }}</div>
+        <div class="page-date-sub">{{ weekday }}</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-blue"><i class="bi bi-box-seam"></i></div>
+      <div>
+        <div class="stat-label">Total Products</div>
+        <div class="stat-value">{{ total_products }}</div>
+        <div class="stat-note">Across all categories</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-green"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-label">In Stock</div>
+        <div class="stat-value">{{ in_stock_count }}</div>
+        <div class="stat-note">{{ in_pct }}% of inventory</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+      <div>
+        <div class="stat-label">Low Stock</div>
+        <div class="stat-value">{{ low_stock_count }}</div>
+        <div class="stat-note">Needs restocking</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-purple"><i class="bi bi-cart-check"></i></div>
+      <div>
+        <div class="stat-label">Total Sales</div>
+        <div class="stat-value">₱{{ "%.2f"|format(total_sales_value) }}</div>
+        <div class="stat-note">All recorded sales</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dash-row">
+    <div class="card stock-overview">
+      <h2>Stock Overview</h2>
+      {% if total_products %}
+        <div class="donut-wrap">
+          <div class="donut"
+               style="background: conic-gradient(#16a34a 0% {{ in_stop }}%, #f59e0b {{ in_stop }}% {{ low_stop }}%, #ef4444 {{ low_stop }}% 100%);">
+            <div class="donut-center">
+              <span class="donut-total">{{ total_products }}</span>
+              <span class="donut-sub">Products</span>
+            </div>
+          </div>
+          <ul class="legend">
+            <li><span class="dot dot-green"></span> In Stock <b>{{ in_stock_count }}</b> <span class="legend-pct">{{ in_pct }}%</span></li>
+            <li><span class="dot dot-yellow"></span> Low Stock <b>{{ low_stock_count }}</b> <span class="legend-pct">{{ low_pct }}%</span></li>
+            <li><span class="dot dot-red"></span> Out of Stock <b>{{ out_stock_count }}</b> <span class="legend-pct">{{ out_pct }}%</span></li>
+          </ul>
+        </div>
+      {% else %}
+        <p class="empty-state">No products yet. <a href="{{ url_for('add_item') }}">Add one</a> to see the breakdown.</p>
+      {% endif %}
+    </div>
+
+    <div class="card recent-sales">
+      <div class="card-header">
+        <h2>Recent Sales</h2>
+        <a href="{{ url_for('new_sale') }}"><i class="bi bi-plus-lg"></i> Record Sale</a>
+      </div>
+      {% if recent_sales %}
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Product</th><th>Quantity</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            {% for s in recent_sales %}
+              <tr>
+                <td>{{ s.sale_date }}</td>
+                <td>{{ s.product_name }}</td>
+                <td>{{ s.quantity }}</td>
+                <td>₱{{ "%.2f"|format(s.total) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-state">No sales recorded yet.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card recent-products">
+    <div class="card-header">
+      <h2>Recent Products</h2>
+      <a href="{{ url_for('products') }}">View All Products <i class="bi bi-arrow-right"></i></a>
+    </div>
+    {% if recent_items %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in recent_items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category or "—" }}</td>
+                <td>₱{{ "%.2f"|format(item.price) }} / {{ item.unit or 'pcs' }}</td>
+                <td>{{ item.quantity }} {{ item.unit or 'pcs' }}</td>
+                <td>
+                  {% if item.quantity == 0 %}
+                    <span class="badge badge-red">Out of Stock</span>
+                  {% elif item.quantity <= item.low_stock_threshold %}
+                    <span class="badge badge-yellow">Low Stock</span>
+                  {% else %}
+                    <span class="badge badge-green">In Stock</span>
+                  {% endif %}
+                </td>
+                <td class="actions">
+                  {% if current_user and current_user.role == 'admin' %}
+                    <a class="btn-edit" href="{{ url_for('edit_item', item_id=item.id) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}"
+                          onsubmit="return confirm('Delete {{ item.name }}?');">
+                      <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                  {% else %}
+                    <span class="stat-note">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span>Showing 1 to {{ recent_items|length }} of {{ total_products }} products</span>
+        <div class="pages">
+          <button disabled><i class="bi bi-chevron-left"></i></button>
+          <button class="active">1</button>
+          <button {{ 'disabled' if total_products <= 5 }}><i class="bi bi-chevron-right"></i></button>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-state">No items found. <a href="{{ url_for('add_item') }}">Add your first item</a>.</p>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Stock Out</h1>
+      <p>Enter the buyer, then add the products sold — each is deducted from stock automatically.</p>
+    </div>
+  </div>
+
+  <div class="card form-card sale-card">
+    {% if items %}
+      <form method="POST" id="sale-form">
+        <div class="buyer-fields">
+          <div>
+            <label for="buyer_name">Buyer name</label>
+            <input type="text" id="buyer_name" name="buyer_name" maxlength="100" required
+                   placeholder="e.g. Maria Santos" value="{{ form.get('buyer_name', '') }}">
+          </div>
+          <div>
+            <label for="buyer_phone">Contact number(optional)</label>
+            <input type="tel" id="buyer_phone" name="buyer_phone" maxlength="30"
+                   placeholder="e.g. 0917 123 4567" value="{{ form.get('buyer_phone', '') }}">
+          </div>
+        </div>
+
+        <label class="pk-label" for="pk-search">Search product</label>
+        <div class="pk-search-wrap">
+          <i class="bi bi-search"></i>
+          <input type="text" id="pk-search" placeholder="Search by product name or category" autocomplete="off">
+          <button type="button" class="pk-clear" id="pk-clear" hidden aria-label="Clear search"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="pk-results-head">
+          <span id="pk-found">0 products</span>
+          <span class="pk-head-actions"><button type="button" class="pk-link" id="pk-select-all" hidden>Select all shown</button><button type="button" class="pk-link" id="pk-browse">Browse all</button></span>
+        </div>
+        <div class="pk-results" id="pk-results"></div>
+        <button type="button" class="button pk-add-selected" id="pk-add-selected" disabled><i class="bi bi-plus-lg"></i> Add selected to list</button>
+
+        <div class="pk-list-head">
+          <h3>Products sold</h3>
+          <span class="pk-count-badge"><span id="pk-count">0</span> in list</span>
+        </div>
+        <div class="pk-list" id="pk-list"></div>
+        <div class="pk-empty" id="pk-empty"><i class="bi bi-basket"></i> Your list is empty. Search and tick products above.</div>
+
+        <div class="pk-total">
+          <span>Total</span>
+          <span id="pk-total">₱0.00</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="button" id="pk-submit" disabled>Record Sale</button>
+          <a href="{{ url_for('sales') }}" class="button button-secondary">Cancel</a>
+        </div>
+      </form>
+
+      <script id="products-data" type="application/json">{{ products|tojson }}</script>
+      <script src="{{ url_for('static', filename='picker.js') }}"></script>
+      <script>
+        const PRODUCTS = JSON.parse(document.getElementById('products-data').textContent);
+        document.addEventListener('DOMContentLoaded', () => {
+          initPicker({ products: PRODUCTS, formId: 'sale-form', showPrice: true, capToStock: true });
+        });
+      </script>
+    {% else %}
+      <p class="empty-state">No items currently in stock to sell. <a href="{{ url_for('add_item') }}">Add inventory</a> first.</p>
+    {% endif %}
+  </div>
+{% endblock %}

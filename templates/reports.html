@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Reports</h1>
+      <p>A snapshot of inventory value, sales, and stock health.</p>
+    </div>
+  </div>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-blue"><i class="bi bi-boxes"></i></div>
+      <div>
+        <div class="stat-label">Total Inventory Value</div>
+        <div class="stat-value">₱{{ "%.2f"|format(total_value) }}</div>
+        <div class="stat-note">Quantity × price, all items</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-purple"><i class="bi bi-cart-check"></i></div>
+      <div>
+        <div class="stat-label">Total Sales Value</div>
+        <div class="stat-value">₱{{ "%.2f"|format(total_sales_value) }}</div>
+        <div class="stat-note">All recorded sales</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-red"><i class="bi bi-exclamation-triangle"></i></div>
+      <div>
+        <div class="stat-label">Items Needing Attention</div>
+        <div class="stat-value">{{ low_items|length }}</div>
+        <div class="stat-note">Low or out of stock</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dash-row">
+    <div class="card">
+      <h2>Top Selling Products</h2>
+      {% if top_products %}
+        <div class="bar-list">
+          {% for p in top_products %}
+            <div class="bar-row">
+              <div class="bar-label">
+                <span>{{ p.product_name }}</span>
+                <span>{{ p.total_qty }} sold · ₱{{ "%.2f"|format(p.total_revenue) }}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: {{ (p.total_qty / max_qty * 100)|round(1) }}%;"></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-state">No sales recorded yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Category Breakdown</h2>
+      {% if category_breakdown %}
+        <table>
+          <thead><tr><th>Category</th><th>Items</th><th>Value</th></tr></thead>
+          <tbody>
+            {% for c in category_breakdown %}
+              <tr>
+                <td>{{ c.category }}</td>
+                <td>{{ c.n }}</td>
+                <td>₱{{ "%.2f"|format(c.value) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-state">No products yet.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card recent-products">
+    <div class="card-header">
+      <h2>Low & Out of Stock Items</h2>
+      <a href="{{ url_for('products') }}">View All Products <i class="bi bi-arrow-right"></i></a>
+    </div>
+    {% if low_items %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Category</th><th>Quantity</th><th>Threshold</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for item in low_items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category or "—" }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.low_stock_threshold }}</td>
+                <td>
+                  {% if item.quantity == 0 %}
+                    <span class="badge badge-red">Out of Stock</span>
+                  {% else %}
+                    <span class="badge badge-yellow">Low Stock</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">Everything is well stocked.</p>
+    {% endif %}
+  </section>
+{% endblock %}

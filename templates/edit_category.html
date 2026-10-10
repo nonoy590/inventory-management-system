@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Edit Category</h1>
+      <p>Update this category's details.</p>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <form method="POST" class="item-form">
+      <label for="name">Category Name</label>
+      <input type="text" id="name" name="name" value="{{ category.name }}" required>
+
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3">{{ category.description or '' }}</textarea>
+
+      <div class="form-actions">
+        <button type="submit" class="button">Update Category</button>
+        <a href="{{ url_for('categories') }}" class="button button-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

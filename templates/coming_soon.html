@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ page_name }}</h1>
+      <p>This section isn't built out yet.</p>
+    </div>
+  </div>
+
+  <div class="card coming-soon">
+    <i class="bi {{ icon }}"></i>
+    <h2>{{ page_name }} coming soon</h2>
+    <p>This page is a placeholder in the current version — let me know if you'd like it built out.</p>
+    <a href="{{ url_for('dashboard') }}" class="button">Back to Dashboard</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Stock In</h1>
+      <p>Record products received. Each product's price is used to work out the total amount and receipt.</p>
+    </div>
+  </div>
+
+  <div class="stockin-layout">
+  <div class="card form-card sale-card">
+    {% if items %}
+      <form method="POST" id="stockin-form" class="item-form">
+        <label for="supplier_id">Supplier (optional)</label>
+        <select id="supplier_id" name="supplier_id">
+          <option value="">— None —</option>
+          {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label class="pk-label" for="pk-search">Search product</label>
+        <div class="pk-search-wrap">
+          <i class="bi bi-search"></i>
+          <input type="text" id="pk-search" placeholder="Search by product name or category" autocomplete="off">
+          <button type="button" class="pk-clear" id="pk-clear" hidden aria-label="Clear search"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="pk-results-head">
+          <span id="pk-found">0 products</span>
+          <span class="pk-head-actions"><button type="button" class="pk-link" id="pk-select-all" hidden>Select all shown</button><button type="button" class="pk-link" id="pk-browse">Browse all</button></span>
+        </div>
+        <div class="pk-results" id="pk-results"></div>
+        <button type="button" class="button pk-add-selected" id="pk-add-selected" disabled><i class="bi bi-plus-lg"></i> Add selected to list</button>
+
+        <div class="pk-list-head">
+          <h3>Products received</h3>
+          <span class="pk-count-badge"><span id="pk-count">0</span> in list</span>
+        </div>
+        <div class="pk-list" id="pk-list"></div>
+        <div class="pk-empty" id="pk-empty"><i class="bi bi-basket"></i> Your list is empty. Search and tick products above.</div>
+
+        <div class="pk-total">
+          <span>Total amount</span>
+          <span id="pk-total">₱0.00</span>
+        </div>
+
+        <label for="note">Note (optional)</label>
+        <input type="text" id="note" name="note" placeholder="e.g. Delivery receipt #1234">
+
+        <div class="form-actions">
+          <button type="submit" class="button" id="pk-submit" disabled>Record Stock In</button>
+          <a href="{{ url_for('products') }}" class="button button-secondary">Cancel</a>
+        </div>
+      </form>
+
+      <script id="products-data" type="application/json">{{ products|tojson }}</script>
+      <script src="{{ url_for('static', filename='picker.js') }}"></script>
+      <script>
+        const PRODUCTS = JSON.parse(document.getElementById('products-data').textContent);
+        let picker;
+        document.addEventListener('DOMContentLoaded', () => {
+          picker = initPicker({ products: PRODUCTS, formId: 'stockin-form', showPrice: true, capToStock: false });
+        });
+        function addRow(id) { if (picker) picker.addProduct(id, 1); }  // used by the Restock panel buttons
+      </script>
+    {% else %}
+      <p class="empty-state">No products yet. <a href="{{ url_for('add_item') }}">Add a product</a> first.</p>
+    {% endif %}
+  </div>
+
+  <aside class="card restock-panel">
+    <div class="card-header">
+      <h2><i class="bi bi-exclamation-triangle"></i> Needs Restocking</h2>
+    </div>
+    {% if low_items %}
+      <p class="restock-summary">
+        <span class="badge badge-red">{{ low_items|selectattr('quantity', 'equalto', 0)|list|length }} out of stock</span>
+        <span class="badge badge-yellow">{{ low_items|rejectattr('quantity', 'equalto', 0)|list|length }} low stock</span>
+      </p>
+      <ul class="restock-list">
+        {% for item in low_items %}
+          <li class="restock-item">
+            <div class="restock-info">
+              <div class="restock-name">{{ item.name }}</div>
+              <div class="restock-meta">
+                {% if item.quantity == 0 %}
+                  <span class="badge badge-red">Out of stock</span>
+                {% else %}
+                  <span class="badge badge-yellow">Low</span>
+                {% endif %}
+                {{ item.quantity }} {{ item.unit or 'pcs' }} left · alert at {{ item.low_stock_threshold }}
+              </div>
+            </div>
+            <button type="button" class="button button-secondary restock-add" onclick="addRow({{ item.id }})">
+              <i class="bi bi-plus-lg"></i> Add
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-state">All products are well stocked.</p>
+    {% endif %}
+  </aside>
+  </div>
+
+  <section class="card recent-sales" style="margin-top: 24px;">
+    <h2 style="padding: 20px 20px 0; margin: 0;">Recent Stock In</h2>
+    {% if history %}
+      <table>
+        <thead>
+          <tr><th>Date &amp; time</th><th>Batch</th><th>Product</th><th>Quantity</th><th>Amount</th><th>Supplier</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          {% for h in history %}
+            <tr>
+              <td>{% if h.created_at %}{{ h.created_at.strftime('%b %d, %Y') }}<span class="tx-time">{{ h.created_at.strftime('%I:%M %p') }}</span>{% else %}{{ h.received_date }}{% endif %}</td>
+              <td>{% if h.batch_id %}<a href="{{ url_for('stock_in_receipt', batch_id=h.batch_id) }}" class="order-tag" title="View receipt">{{ h.batch_id }}</a>{% else %}<span class="order-tag">—</span>{% endif %}</td>
+              <td>{{ h.product_name }}</td>
+              <td>+{{ h.quantity }}</td>
+              <td>{% if h.total and h.total > 0 %}₱{{ "%.2f"|format(h.total) }}{% else %}—{% endif %}</td>
+              <td>{{ h.supplier or "—" }}</td>
+              <td>{{ h.note or "—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-state">No stock in recorded yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}

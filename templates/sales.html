@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Sales</h1>
+      <p>All recorded sales transactions.</p>
+    </div>
+    <a href="{{ url_for('new_sale') }}" class="button"><i class="bi bi-plus-lg"></i> Record Sale</a>
+  </div>
+
+  <section class="stat-grid stat-grid-single">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-purple"><i class="bi bi-cart-check"></i></div>
+      <div>
+        <div class="stat-label">Total Sales Value</div>
+        <div class="stat-value">₱{{ "%.2f"|format(total_value) }}</div>
+        <div class="stat-note">{{ sales|length }} transactions</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card recent-sales">
+    {% if sales %}
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Order</th><th>Product</th><th>Quantity</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          {% for s in sales %}
+            <tr>
+              <td>{{ s.sale_date }}</td>
+              <td><span class="order-tag">{{ s.transaction_id or "—" }}</span></td>
+              <td>{{ s.product_name }}</td>
+              <td>{{ s.quantity }}</td>
+              <td>₱{{ "%.2f"|format(s.total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-state">No sales recorded yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}

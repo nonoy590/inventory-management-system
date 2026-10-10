@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Add Category</h1>
+      <p>Create a new product category.</p>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <form method="POST" class="item-form">
+      <label for="name">Category Name</label>
+      <input type="text" id="name" name="name" value="{{ form.get('name', '') }}" required>
+
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3">{{ form.get('description', '') }}</textarea>
+
+      <div class="form-actions">
+        <button type="submit" class="button">Save Category</button>
+        <a href="{{ url_for('categories') }}" class="button button-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

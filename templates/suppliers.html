@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Suppliers</h1>
+      <p>Vendors and suppliers you source inventory from.</p>
+    </div>
+    {% if current_user and current_user.role == 'admin' %}
+      <a href="{{ url_for('add_supplier') }}" class="button"><i class="bi bi-plus-lg"></i> Add Supplier</a>
+    {% endif %}
+  </div>
+
+  <section class="card recent-products">
+    {% if suppliers %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Contact Person</th><th>Phone</th><th>Email</th><th>Address</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for s in suppliers %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.contact_person or "—" }}</td>
+                <td>{{ s.phone or "—" }}</td>
+                <td>{{ s.email or "—" }}</td>
+                <td>{{ s.address or "—" }}</td>
+                <td class="actions">
+                  {% if current_user and current_user.role == 'admin' %}
+                    <a class="btn-edit" href="{{ url_for('edit_supplier', supplier_id=s.id) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_supplier', supplier_id=s.id) }}"
+                          onsubmit="return confirm('Delete supplier {{ s.name }}?');">
+                      <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                  {% else %}
+                    <span class="stat-note">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">No suppliers yet.
+        {% if current_user and current_user.role == 'admin' %}
+          <a href="{{ url_for('add_supplier') }}">Add one</a>.
+        {% endif %}
+      </p>
+    {% endif %}
+  </section>
+{% endblock %}

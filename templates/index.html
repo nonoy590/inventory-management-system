@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="stats">
+    <div class="stat-card">
+      <span class="stat-value">{{ total_items }}</span>
+      <span class="stat-label">Items</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">₱{{ "%.2f"|format(total_value) }}</span>
+      <span class="stat-label">Total Value</span>
+    </div>
+    <div class="stat-card {{ 'stat-warning' if low_stock_count > 0 else '' }}">
+      <span class="stat-value">{{ low_stock_count }}</span>
+      <span class="stat-label">Low Stock</span>
+    </div>
+  </section>
+
+  <form method="GET" class="search-bar">
+    <input type="text" name="q" placeholder="Search by name or category..." value="{{ query }}">
+    <button type="submit" class="button button-secondary">Search</button>
+    {% if query %}
+      <a href="{{ url_for('index') }}" class="clear-link">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if items %}
+    <table class="inventory-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Value</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr class="{{ 'row-low-stock' if item.quantity <= item.low_stock_threshold else '' }}">
+            <td>{{ item.name }}</td>
+            <td>{{ item.category or "—" }}</td>
+            <td>{{ item.quantity }} {{ item.unit or 'pcs' }}</td>
+            <td>₱{{ "%.2f"|format(item.price) }} / {{ item.unit or 'pcs' }}</td>
+            <td>₱{{ "%.2f"|format(item.quantity * item.price) }}</td>
+            <td>
+              {% if item.quantity <= item.low_stock_threshold %}
+                <span class="badge badge-warning">Low Stock</span>
+              {% else %}
+                <span class="badge badge-ok">In Stock</span>
+              {% endif %}
+            </td>
+            <td class="actions">
+              <a href="{{ url_for('edit_item', item_id=item.id) }}">Edit</a>
+              <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}"
+                    onsubmit="return confirm('Delete {{ item.name }}?');">
+                <button type="submit" class="link-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty-state">No items found. <a href="{{ url_for('add_item') }}">Add your first item</a>.</p>
+  {% endif %}
+{% endblock %}

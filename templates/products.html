@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Products</h1>
+      <p>Manage all items in your inventory.</p>
+    </div>
+    {% if current_user and current_user.role == 'admin' %}
+      <a href="{{ url_for('add_item') }}" class="button"><i class="bi bi-plus-lg"></i> Add Item</a>
+    {% endif %}
+  </div>
+
+  <form method="GET" class="search-bar">
+    <input type="text" name="q" placeholder="Search by name or category..." value="{{ query }}">
+    <button type="submit" class="button button-secondary">Search</button>
+    {% if query %}
+      <a href="{{ url_for('products') }}" class="clear-link">Clear</a>
+    {% endif %}
+  </form>
+
+  <section class="card recent-products">
+    {% if items %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th><th>Category</th><th>Quantity</th><th>Price / Unit</th><th>Value</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category or "—" }}</td>
+                <td>{{ item.quantity }} {{ item.unit or 'pcs' }}</td>
+                <td>₱{{ "%.2f"|format(item.price) }} / {{ item.unit or 'pcs' }}</td>
+                <td>₱{{ "%.2f"|format(item.quantity * item.price) }}</td>
+                <td>
+                  {% if item.quantity == 0 %}
+                    <span class="badge badge-red">Out of Stock</span>
+                  {% elif item.quantity <= item.low_stock_threshold %}
+                    <span class="badge badge-yellow">Low Stock</span>
+                  {% else %}
+                    <span class="badge badge-green">In Stock</span>
+                  {% endif %}
+                </td>
+                <td class="actions">
+                  {% if current_user and current_user.role == 'admin' %}
+                    <a class="btn-edit" href="{{ url_for('edit_item', item_id=item.id) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}"
+                          onsubmit="return confirm('Delete {{ item.name }}?');">
+                      <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                  {% else %}
+                    <span class="stat-note">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">No items found. <a href="{{ url_for('add_item') }}">Add your first item</a>.</p>
+    {% endif %}
+  </section>
+{% endblock %}

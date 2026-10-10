@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header no-print">
+    <div>
+      <h1>Receipt</h1>
+      <p>{{ r.subtitle }} Receipt <span class="order-tag">{{ r.ref }}</span> is saved in Transactions. Print it or save it as an image.</p>
+    </div>
+    <div class="receipt-actions">
+      <button type="button" class="button" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+      <button type="button" class="button button-secondary" id="download-jpeg"><i class="bi bi-file-earmark-image"></i> Download JPEG</button>
+      <a href="{{ r.again_url }}" class="button button-secondary"><i class="bi bi-plus-lg"></i> {{ r.again_label }}</a>
+      <a href="{{ url_for('sales') }}" class="button button-secondary"><i class="bi bi-arrow-left-right"></i> Transactions</a>
+    </div>
+  </div>
+
+  <div class="receipt-wrap">
+    <div class="receipt" id="receipt">
+      <div class="rc-head">
+        <div class="rc-store">{{ r.store }}</div>
+        {% if r.address %}<div class="rc-sub">{{ r.address }}</div>{% endif %}
+        {% if r.phone %}<div class="rc-sub">Tel: {{ r.phone }}</div>{% endif %}
+        <div class="rc-title">{{ r.heading }}</div>
+      </div>
+
+      <div class="rc-meta">
+        {% for k, v in r.meta %}
+          <div><span>{{ k }}</span><b>{{ v }}</b></div>
+        {% endfor %}
+      </div>
+
+      <table class="rc-table">
+        <thead><tr><th>Item</th><th>Qty</th><th>{{ r.price_label }}</th><th>Amount</th></tr></thead>
+        <tbody>
+          {% for l in r.lines %}
+            <tr>
+              <td>{{ l.name }}</td>
+              <td>{{ l.qty }}</td>
+              <td>{{ "%.2f"|format(l.unit_price) }}</td>
+              <td>{{ "%.2f"|format(l.total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="rc-total"><span>TOTAL</span><span>₱{{ "%.2f"|format(r.total) }}</span></div>
+      <div class="rc-thanks">{{ 'Thank you for your purchase!' if r.heading == 'SALES RECEIPT' else 'Goods received in good order.' }}</div>
+    </div>
+  </div>
+
+  <script>
+    const RECEIPT = {{ r|tojson }};
+
+    function peso(n) { return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    // Draws the receipt on a canvas (no external library, works offline) and saves it as a JPEG.
+    function downloadJpeg() {
+      const S = 2, W = 420, PAD = 24, mono = 'Consolas, "Courier New", monospace';
+      const R = RECEIPT;
+      const measure = document.createElement('canvas').getContext('2d');
+      measure.font = `13px ${mono}`;
+
+      function wrap(text, maxW) {
+        const words = String(text).split(' '), out = []; let cur = '';
+        words.forEach(w => {
+          const t = cur ? cur + ' ' + w : w;
+          if (measure.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t;
+        });
+        if (cur) out.push(cur);
+        return out;
+      }
+      function fit(text, maxW) {
+        text = String(text);
+        if (measure.measureText(text).width <= maxW) return text;
+        while (text.length > 1 && measure.measureText(text + '…').width > maxW) text = text.slice(0, -1);
+        return text + '…';
+      }
+
+      const cItem = PAD, cQty = 215, cPrice = 285, cAmt = W - PAD;
+      const itemW = cQty - cItem - 20;
+      const head = [];
+      if (R.address) head.push(R.address);
+      if (R.phone) head.push('Tel: ' + R.phone);
+      const meta = R.meta;
+      const lineBlocks = R.lines.map(l => wrap(l.name, itemW));
+      const rows = lineBlocks.reduce((n, b) => n + b.length, 0);
+
+      const H = 24 + 30 + head.length * 17 + 36 + meta.length * 20 + 24 + 30 + rows * 18 + R.lines.length * 6 + 24 + 40 + 40 + 30;
+      const cv = document.createElement('canvas');
+      cv.width = W * S; cv.height = H * S;
+      const g = cv.getContext('2d');
+      g.scale(S, S);
+      g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#111'; g.textBaseline = 'alphabetic';
+
+      let y = PAD + 8;
+      g.textAlign = 'center';
+      g.font = `bold 20px ${mono}`; g.fillText(R.store, W / 2, y); y += 22;
+      g.font = `12px ${mono}`; g.fillStyle = '#555';
+      head.forEach(h => { g.fillText(h, W / 2, y); y += 17; });
+      g.fillStyle = '#111'; g.font = `bold 13px ${mono}`; y += 8; g.fillText(R.heading, W / 2, y); y += 14;
+
+      function dash() { g.strokeStyle = '#999'; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(PAD, y); g.lineTo(W - PAD, y); g.stroke(); g.setLineDash([]); }
+      dash(); y += 20;
+
+      g.font = `13px ${mono}`;
+      meta.forEach(([k, v]) => {
+        g.textAlign = 'left'; g.fillStyle = '#555'; g.fillText(k, PAD, y);
+        const room = W - PAD * 2 - g.measureText(k).width - 12;
+        g.textAlign = 'right'; g.fillStyle = '#111'; g.fillText(fit(v, room), W - PAD, y); y += 20;
+      });
+      y -= 6; dash(); y += 20;
+
+      g.font = `bold 12px ${mono}`; g.fillStyle = '#111';
+      g.textAlign = 'left'; g.fillText('ITEM', cItem, y);
+      g.textAlign = 'right'; g.fillText('QTY', cQty + 20, y); g.fillText(R.price_label.toUpperCase(), cPrice + 28, y); g.fillText('AMOUNT', cAmt, y);
+      y += 10; dash(); y += 18;
+
+      g.font = `13px ${mono}`;
+      R.lines.forEach((l, i) => {
+        lineBlocks[i].forEach((t, j) => {
+          g.textAlign = 'left'; g.fillText(t, cItem, y);
+          if (j === 0) {
+            g.textAlign = 'right';
+            g.fillText(String(l.qty), cQty + 20, y);
+            g.fillText(l.unit_price.toFixed(2), cPrice + 28, y);
+            g.fillText(l.total.toFixed(2), cAmt, y);
+          }
+          y += 18;
+        });
+        y += 6;
+      });
+      y -= 2; dash(); y += 28;
+
+      g.font = `bold 16px ${mono}`;
+      g.textAlign = 'left'; g.fillText('TOTAL', PAD, y);
+      g.textAlign = 'right'; g.fillText(peso(R.total), W - PAD, y); y += 34;
+      g.textAlign = 'center'; g.font = `12px ${mono}`; g.fillStyle = '#555';
+      g.fillText(R.heading === 'SALES RECEIPT' ? 'Thank you for your purchase!' : 'Goods received in good order.', W / 2, y);
+
+      cv.toBlob(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `receipt-${R.ref}.jpg`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }, 'image/jpeg', 0.95);
+    }
+    document.getElementById('download-jpeg').addEventListener('click', downloadJpeg);
+  </script>
+{% endblock %}

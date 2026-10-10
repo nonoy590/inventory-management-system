@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Transactions</h1>
+      <p>Every stock in and stock out, newest first.</p>
+    </div>
+    <div class="header-actions" style="display:flex; gap:8px;">
+      <a href="{{ url_for('stock_in') }}" class="button button-secondary"><i class="bi bi-box-arrow-in-down"></i> Stock In</a>
+      <a href="{{ url_for('new_sale') }}" class="button"><i class="bi bi-box-arrow-up"></i> Stock Out</a>
+    </div>
+  </div>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-green"><i class="bi bi-box-arrow-in-down"></i></div>
+      <div>
+        <div class="stat-label">Stock In</div>
+        <div class="stat-value">{{ in_count }}</div>
+        <div class="stat-note">transactions recorded</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-red"><i class="bi bi-box-arrow-up"></i></div>
+      <div>
+        <div class="stat-label">Stock Out</div>
+        <div class="stat-value">{{ out_count }}</div>
+        <div class="stat-note">transactions recorded</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-purple"><i class="bi bi-cart-check"></i></div>
+      <div>
+        <div class="stat-label">Total Sales Value</div>
+        <div class="stat-value">₱{{ "%.2f"|format(total_value) }}</div>
+        <div class="stat-note">from stock out</div>
+      </div>
+    </div>
+  </section>
+
+  <form method="GET" class="search-bar">
+    <select name="type" onchange="this.form.submit()">
+      <option value="all" {{ 'selected' if kind == 'all' }}>All transactions</option>
+      <option value="in" {{ 'selected' if kind == 'in' }}>Stock In only</option>
+      <option value="out" {{ 'selected' if kind == 'out' }}>Stock Out only</option>
+    </select>
+    {% if kind != 'all' %}
+      <a href="{{ url_for('sales') }}" class="clear-link">Clear</a>
+    {% endif %}
+  </form>
+
+  <section class="card recent-sales">
+    {% if transactions %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Date &amp; time</th><th>Type</th><th>Reference</th><th>Name</th><th>Contact</th><th>Products</th><th>Amount</th></tr>
+          </thead>
+          <tbody>
+            {% for t in transactions %}
+              <tr class="tx-row" onclick="toggleTx(this)">
+                <td>{% if t.time %}{{ t.time.strftime('%b %d, %Y') }}<span class="tx-time">{{ t.time.strftime('%I:%M %p') }}</span>{% else %}{{ t.date }}{% endif %}</td>
+                <td>
+                  {% if t.type == 'in' %}
+                    <span class="badge badge-green">Stock In</span>
+                  {% else %}
+                    <span class="badge badge-red">Stock Out</span>
+                  {% endif %}
+                </td>
+                <td><span class="order-tag">{{ t.ref or "—" }}</span></td>
+                <td>
+                  <button type="button" class="tx-toggle" aria-expanded="false">
+                    <i class="bi bi-chevron-right"></i> {{ t.name }}
+                  </button>
+                </td>
+                <td>{{ t.phone or "—" }}</td>
+                <td>{{ t.lines|length }} product{{ '' if t.lines|length == 1 else 's' }}</td>
+                <td>{% if t.amount is not none and (t.type == 'out' or t.amount > 0) %}₱{{ "%.2f"|format(t.amount) }}{% else %}—{% endif %}</td>
+              </tr>
+              <tr class="tx-detail" hidden>
+                <td colspan="7">
+                  <div class="tx-detail-box">
+                    <table>
+                      <thead>
+                        <tr><th>Product</th><th>Quantity</th><th>Amount</th></tr>
+                      </thead>
+                      <tbody>
+                        {% for it in t.lines %}
+                          <tr>
+                            <td>{{ it.product_name }}</td>
+                            <td>{{ '+' if t.type == 'in' else '−' }}{{ it.quantity }} {{ it.unit or '' }}</td>
+                            <td>{% if it.amount is not none and (t.type == 'out' or it.amount > 0) %}₱{{ "%.2f"|format(it.amount) }}{% else %}—{% endif %}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                    {% if t.type == 'in' and t.note %}<p class="tx-note">Note: {{ t.note }}</p>{% endif %}
+                    {% if t.ref %}
+                      <a href="{{ url_for('receipt', transaction_id=t.ref) if t.type == 'out' else url_for('stock_in_receipt', batch_id=t.ref) }}" class="button button-secondary" style="margin-top:10px;">
+                        <i class="bi bi-receipt"></i> View receipt
+                      </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <script>
+        function toggleTx(row) {
+          const detail = row.nextElementSibling;
+          const btn = row.querySelector('.tx-toggle');
+          const open = detail.hidden;
+          detail.hidden = !open;
+          btn.classList.toggle('open', open);
+          btn.setAttribute('aria-expanded', open);
+        }
+      </script>
+    {% else %}
+      <p class="empty-state">No transactions found.</p>
+    {% endif %}
+  </section>
+{% endblock %}

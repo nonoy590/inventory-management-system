@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Settings</h1>
+      <p>Manage user accounts and your own password.</p>
+    </div>
+  </div>
+
+  <section class="dash-row">
+    <div class="card">
+      <h2>Add User</h2>
+      <form method="POST" class="item-form">
+        <input type="hidden" name="action" value="add_user">
+
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="user">User (staff)</option>
+          <option value="admin">Admin</option>
+        </select>
+
+        <div class="form-actions">
+          <button type="submit" class="button">Create User</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Change My Password</h2>
+      <form method="POST" class="item-form">
+        <input type="hidden" name="action" value="change_password">
+
+        <label for="current_password">Current Password</label>
+        <input type="password" id="current_password" name="current_password" required>
+
+        <label for="new_password">New Password</label>
+        <input type="password" id="new_password" name="new_password" required>
+
+        <div class="form-actions">
+          <button type="submit" class="button">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="card recent-products">
+    <div class="card-header">
+      <h2>All Users</h2>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Username</th><th>Role</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td>{{ u.username }}{% if current_user and u.id == current_user.id %} <span class="stat-note">(you)</span>{% endif %}</td>
+              <td><span class="role-badge role-{{ u.role }}">{{ u.role }}</span></td>
+              <td>{{ u.created_at }}</td>
+              <td class="actions">
+                {% if current_user and u.id != current_user.id %}
+                  <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}"
+                        onsubmit="return confirm('Delete user {{ u.username }}?');">
+                    <button type="submit" class="btn-delete">Delete</button>
+                  </form>
+                {% else %}
+                  <span class="stat-note">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
